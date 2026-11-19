@@ -11,6 +11,7 @@ const Order = require('./models/Order');
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, 'public')));
 
 mongoose.connect(process.env.MONGO_URI)
@@ -30,6 +31,15 @@ function verifyOwner(req, res, next) {
     res.status(401).json({ message: 'Invalid or expired token' });
   }
 }
+
+// Page Routes
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/owner', (req, res) => {
+  res.sendFile(path.join(__dirname, 'owner.html'));
+});
 
 // Public Storefront Routes
 app.get('/api/products', async (req, res) => {
