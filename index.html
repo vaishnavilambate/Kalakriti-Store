@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalakriti — Authentic Indian Handmade Crafts & Artisanal Store</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        terracotta: { DEFAULT: '#C85A32', dark: '#A44320', light: '#E27A52' },
+                        amberGold: { DEFAULT: '#D4AF37', light: '#F3E5AB', dark: '#AA8C2C' },
+                        forestGreen: { DEFAULT: '#1E4620', light: '#2D6A30' },
+                        ivoryCream: '#FAF9F6',
+                        warmSand: '#F5EBE0',
+                    },
+                    fontFamily: {
+                        serif: ['Playfair Display', 'serif'],
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-serif { font-family: 'Playfair Display', serif; }
+        [x-cloak] { display: none !important; }
+        @media print {
+            body * { visibility: hidden; }
+            #printable-invoice, #printable-invoice * { visibility: visible; }
+            #printable-invoice { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-ivoryCream text-stone-800 antialiased" x-data="kalakritiStore()">
+
+    <!-- ANNOUNCEMENT BAR -->
+    <div class="bg-forestGreen text-amberGold-light text-xs sm:text-sm py-2 px-4 text-center font-medium tracking-wide">
+        <span><i class="fa-solid fa-hands-holding-child mr-1.5"></i> Authentic Indian Handloom & Crafts • 5% GST Inclusive Ledger</span>
+    </div>
+
+    <!-- HEADER & NAVIGATION -->
+    <header class="sticky top-0 z-40 bg-ivoryCream/95 backdrop-blur-md border-b border-stone-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+            <a href="#" @click.prevent="currentTab = 'shop'; selectedCategory = 'All'" class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-terracotta to-amberGold flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid fa-om text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-serif text-2xl font-bold tracking-tight text-stone-900">कलाकृति</h1>
+                    <p class="text-[10px] uppercase tracking-widest text-terracotta font-semibold -mt-1">Kalakriti • Handcrafted India</p>
+                </div>
+            </a>
+
+            <!-- Search Bar -->
+            <div class="hidden md:flex flex-1 max-w-md mx-6">
+                <input type="text" x-model="searchQuery" placeholder="Search Crochet, Totes, Kashmiri Box, Ethnic Wear..." 
+                       class="w-full bg-warmSand/60 border border-stone-300 rounded-full py-2.5 pl-5 pr-4 text-sm focus:outline-none focus:border-terracotta">
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center gap-3">
+                <button @click="openOwnerPortal()" 
+                        :class="isOwnerAuthenticated ? 'bg-forestGreen text-white ring-2 ring-amberGold' : 'bg-stone-900 hover:bg-terracotta text-white'"
+                        class="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all shadow-sm">
+                    <i class="fa-solid fa-lock text-amberGold"></i>
+                    <span x-text="isOwnerAuthenticated ? 'Owner Dashboard' : 'Owner Login'"></span>
+                </button>
+
+                <!-- Cart Button -->
+                <button @click="cartOpen = true" class="relative p-2 text-stone-700 hover:text-terracotta transition-colors flex items-center gap-2">
+                    <div class="relative">
+                        <i class="fa-solid fa-bag-shopping text-xl"></i>
+                        <span x-show="cartTotalCount > 0" x-text="cartTotalCount" 
+                              class="absolute -top-1 -right-1 bg-forestGreen text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold"></span>
+                    </div>
+                    <span class="hidden lg:inline text-sm font-bold text-stone-800" x-text="'₹' + cartSubtotal.toLocaleString('en-IN')">₹0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Categories Bar -->
+        <div class="bg-warmSand/70 border-t border-stone-200 overflow-x-auto">
+            <div class="max-w-7xl mx-auto px-4 flex items-center gap-4 py-2.5 whitespace-nowrap text-xs font-semibold text-stone-700">
+                <button @click="selectedCategory = 'All'" :class="selectedCategory === 'All' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">All Crafts</button>
+                <button @click="selectedCategory = 'Crochet'" :class="selectedCategory === 'Crochet' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Crochet</button>
+                <button @click="selectedCategory = 'Totes & Bags'" :class="selectedCategory === 'Totes & Bags' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Totes & Bags</button>
+                <button @click="selectedCategory = 'Kashmiri & Accessories'" :class="selectedCategory === 'Kashmiri & Accessories' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Kashmiri & Accessories</button>
+                <button @click="selectedCategory = 'Ethnic Wear'" :class="selectedCategory === 'Ethnic Wear' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Ethnic Wear</button>
+                <button @click="selectedCategory = 'Lippan & Paintings'" :class="selectedCategory === 'Lippan & Paintings' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Lippan & Paintings</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTENT -->
+    <main class="min-h-screen">
+        <div x-show="currentTab === 'shop'">
+            <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div class="mb-8 pb-4 border-b border-stone-200">
+                    <h2 class="font-serif text-3xl font-extrabold text-stone-900">
+                        <span x-text="selectedCategory === 'All' ? 'Authentic Indian Handicrafts' : selectedCategory"></span>
+                        <span class="text-sm font-sans font-normal text-stone-500 ml-2" x-text="'(' + filteredProducts.length + ' items)'"></span>
+                    </h2>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <template x-for="product in filteredProducts" :key="product._id">
+                        <div class="bg-white rounded-2xl overflow-hidden border border-stone-200 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between">
+                            <div class="relative overflow-hidden bg-stone-100 aspect-square">
+                                <img :src="product.image" :alt="product.name" class="w-full h-full object-cover"
+                                     onerror="this.src='https://placehold.co/400x400/C85A32/FFFFFF?text=Kalakriti'">
+                                <div class="absolute top-3 left-3 flex flex-col gap-1">
+                                    <span class="bg-amberGold text-stone-950 font-extrabold text-[10px] px-2.5 py-1 rounded shadow uppercase">GI Certified</span>
+                                    <span x-show="product.stock === 0" class="bg-stone-900 text-white font-extrabold text-[10px] px-2.5 py-1 rounded shadow uppercase">Sold Out</span>
+                                </div>
+                            </div>
+                            <div class="p-5 flex-1 flex flex-col justify-between">
+                                <div>
+                                    <div class="flex items-center justify-between text-xs text-stone-500 mb-1.5">
+                                        <span class="font-semibold text-terracotta"><i class="fa-solid fa-location-dot"></i> <span x-text="product.artisanRegion"></span></span>
+                                    </div>
+                                    <h3 class="font-serif font-bold text-stone-900 text-base line-clamp-2" x-text="product.name"></h3>
+                                </div>
+                                <div class="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
+                                    <span class="text-lg font-extrabold text-stone-900" x-text="'₹' + product.price.toLocaleString('en-IN')"></span>
+                                    <button @click="addToCart(product)" :disabled="product.stock <= 0"
+                                            :class="product.stock <= 0 ? 'bg-stone-300 cursor-not-allowed' : 'bg-stone-900 hover:bg-terracotta text-white'"
+                                            class="px-4 py-2 rounded-xl text-xs font-bold transition-all">
+                                        <i class="fa-solid fa-bag-shopping mr-1"></i> <span x-text="product.stock <= 0 ? 'Sold Out' : 'Add'"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </section>
+        </div>
+
+        <!-- OWNER BACKEND DASHBOARD VIEW -->
+        <div x-show="currentTab === 'owner-backend' && isOwnerAuthenticated" class="py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" x-cloak>
+            <div class="bg-gradient-to-r from-stone-900 via-forestGreen to-stone-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl mb-8 flex justify-between items-center">
+                <div>
+                    <span class="bg-amberGold/20 text-amberGold px-3 py-1 rounded-full text-xs font-bold mb-2 inline-block">Admin Session Active</span>
+                    <h2 class="font-serif text-2xl sm:text-3xl font-extrabold">Kalakriti Store Owner Control Center</h2>
+                    <p class="text-xs sm:text-sm text-stone-300 mt-1">Manage stock inventory, customer orders, 5% GST billing invoices, and total income.</p>
+                </div>
+                <button @click="logoutOwner()" class="bg-terracotta hover:bg-terracotta-dark text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg transition-all">
+                    Lock Session
+                </button>
+            </div>
+
+            <!-- KPI Summary Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+                    <span class="text-xs font-bold text-stone-500 uppercase">Total Income (Incl. GST)</span>
+                    <p class="font-serif text-2xl font-extrabold text-stone-900 mt-2" x-text="'₹' + ownerStats.totalIncome.toLocaleString('en-IN')"></p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+                    <span class="text-xs font-bold text-stone-500 uppercase">Total 5% GST Collected</span>
+                    <p class="font-serif text-2xl font-extrabold text-forestGreen mt-2" x-text="'₹' + ownerStats.totalGst.toLocaleString('en-IN')"></p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+                    <span class="text-xs font-bold text-stone-500 uppercase">Pending COD Receivable</span>
+                    <p class="font-serif text-2xl font-extrabold text-amber-600 mt-2" x-text="'₹' + ownerStats.pendingCod.toLocaleString('en-IN')"></p>
+                </div>
+                <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+                    <span class="text-xs font-bold text-stone-500 uppercase">Total Orders Placed</span>
+                    <p class="font-serif text-2xl font-extrabold text-terracotta mt-2" x-text="ownerStats.totalOrders"></p>
+                </div>
+            </div>
+
+            <!-- Owner Orders & GST Ledger Table -->
+            <div class="bg-white rounded-3xl border border-stone-200 shadow-lg p-6">
+                <h3 class="font-serif text-xl font-bold text-stone-900 mb-4">Live Database Orders & 5% GST Invoices</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-warmSand text-stone-700 uppercase">
+                                <th class="p-3">Invoice / AWB</th>
+                                <th class="p-3">Customer Name</th>
+                                <th class="p-3">Payment</th>
+                                <th class="p-3 text-right">Subtotal</th>
+                                <th class="p-3 text-right">5% GST</th>
+                                <th class="p-3 text-right">Total Amount</th>
+                                <th class="p-3 text-center">Print Bill</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-stone-100">
+                            <template x-for="ord in ownerOrders" :key="ord._id">
+                                <tr class="hover:bg-stone-50">
+                                    <td class="p-3">
+                                        <strong class="text-terracotta" x-text="ord.invoiceNumber"></strong>
+                                        <span class="block text-[10px] text-stone-500" x-text="ord.awbNumber"></span>
+                                    </td>
+                                    <td class="p-3">
+                                        <p class="font-bold text-stone-900" x-text="ord.customerName"></p>
+                                        <p class="text-[10px] text-stone-500" x-text="ord.phone + ' • Pincode: ' + ord.pincode"></p>
+                                    </td>
+                                    <td class="p-3">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold"
+                                              :class="ord.paymentStatus === 'Paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
+                                              x-text="ord.paymentMethod + ' (' + ord.paymentStatus + ')'"></span>
+                                    </td>
+                                    <td class="p-3 text-right font-semibold" x-text="'₹' + ord.subtotal.toLocaleString('en-IN')"></td>
+                                    <td class="p-3 text-right text-stone-600" x-text="'₹' + ord.gstAmount.toLocaleString('en-IN')"></td>
+                                    <td class="p-3 text-right font-extrabold text-stone-900" x-text="'₹' + ord.totalAmount.toLocaleString('en-IN')"></td>
+                                    <td class="p-3 text-center">
+                                        <button @click="openInvoiceModal(ord)" class="bg-stone-900 hover:bg-terracotta text-white px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors">
+                                            <i class="fa-solid fa-print mr-1"></i> Print Bill
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- OWNER LOGIN MODAL -->
+    <div x-show="ownerLoginModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/75 backdrop-blur-sm" x-cloak>
+        <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-stone-200 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-serif text-2xl font-bold text-stone-900">Owner Login</h3>
+                <button @click="ownerLoginModalOpen = false" class="text-stone-400 hover:text-stone-700"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form @submit.prevent="loginOwner" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-stone-700 uppercase mb-1">Owner ID</label>
+                    <input type="text" x-model="ownerLoginForm.ownerId" required placeholder="owner" class="w-full bg-warmSand/50 border rounded-lg p-3 text-sm">
+                </div>
+                <div>
+                    <label class="block font-bold text-stone-700 uppercase mb-1">Passcode</label>
+                    <input type="password" x-model="ownerLoginForm.passcode" required placeholder="kalakriti2026" class="w-full bg-warmSand/50 border rounded-lg p-3 text-sm">
+                </div>
+                <p x-show="ownerLoginError" class="text-xs text-red-600 font-bold" x-text="ownerLoginError"></p>
+                <button type="submit" class="w-full bg-terracotta text-white py-3 rounded-xl font-bold text-sm shadow-lg">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- CART DRAWER -->
+    <div x-show="cartOpen" class="fixed inset-0 z-50 flex justify-end" x-cloak>
+        <div class="fixed inset-0 bg-stone-900/50 backdrop-blur-sm" @click="cartOpen = false"></div>
+        <div class="relative w-full max-w-md bg-ivoryCream h-full shadow-2xl flex flex-col justify-between z-10 border-l border-stone-200">
+            <div class="p-5 border-b border-stone-200 flex items-center justify-between bg-white">
+                <h3 class="font-serif font-bold text-lg text-stone-900">Your Handcrafted Cart</h3>
+                <button @click="cartOpen = false" class="text-stone-400 hover:text-stone-700"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-5 space-y-4">
+                <template x-if="cart.length === 0">
+                    <p class="text-center text-stone-400 py-20 text-sm font-medium">Your cart is empty.</p>
+                </template>
+                <template x-for="item in cart" :key="item.productId">
+                    <div class="flex gap-4 p-3 bg-white rounded-2xl border border-stone-200 items-center">
+                        <img :src="item.image" class="w-16 h-16 rounded-xl object-cover">
+                        <div class="flex-1">
+                            <h4 class="font-serif font-bold text-xs text-stone-900" x-text="item.name"></h4>
+                            <p class="text-xs font-extrabold text-stone-900 mt-1" x-text="'₹' + (item.price * item.qty).toLocaleString('en-IN') + ' (' + item.qty + 'x)'"></p>
+                        </div>
+                        <button @click="removeFromCart(item.productId)" class="text-stone-400 hover:text-red-600 p-2"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                </template>
+            </div>
+            <div class="p-5 bg-white border-t border-stone-200 space-y-3">
+                <div class="flex justify-between text-base font-extrabold text-stone-900">
+                    <span>Subtotal (INR)</span>
+                    <span class="text-terracotta" x-text="'₹' + cartSubtotal.toLocaleString('en-IN')"></span>
+                </div>
+                <button @click="checkoutModalOpen = true; cartOpen = false" :disabled="cart.length === 0" 
+                        class="w-full bg-terracotta hover:bg-terracotta-dark disabled:opacity-50 text-white py-3.5 rounded-xl font-bold text-xs shadow-lg">
+                    Proceed to Secure Checkout
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHECKOUT MODAL -->
+    <div x-show="checkoutModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/70 backdrop-blur-sm" x-cloak>
+        <div class="bg-white rounded-3xl max-w-lg w-full p-8 shadow-2xl border border-stone-200 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-serif text-2xl font-bold text-stone-900">Secure Indian Checkout</h3>
+                <button @click="checkoutModalOpen = false" class="text-stone-400 hover:text-stone-700"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form @submit.prevent="placeOrder" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-stone-700 uppercase mb-1">Full Name *</label>
+                    <input type="text" x-model="checkoutForm.customerName" required placeholder="Aarav Sharma" class="w-full bg-warmSand/50 border rounded-lg p-2.5 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-stone-700 uppercase mb-1">Mobile Number *</label>
+                        <input type="tel" x-model="checkoutForm.phone" required placeholder="+91 98765 43210" class="w-full bg-warmSand/50 border rounded-lg p-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-stone-700 uppercase mb-1">6-Digit Pincode *</label>
+                        <input type="text" x-model="checkoutForm.pincode" required maxlength="6" placeholder="411001" class="w-full bg-warmSand/50 border rounded-lg p-2.5 text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-stone-700 uppercase mb-1">Delivery Address *</label>
+                    <textarea x-model="checkoutForm.address" required rows="2" placeholder="House No, Street, Area" class="w-full bg-warmSand/50 border rounded-lg p-2.5 text-sm"></textarea>
+                </div>
+                <div>
+                    <label class="block font-bold text-stone-700 uppercase mb-1">Payment Method *</label>
+                    <select x-model="checkoutForm.paymentMethod" class="w-full bg-warmSand/50 border rounded-lg p-2.5 text-sm font-bold">
+                        <option value="UPI">UPI (GPay / PhonePe / Paytm)</option>
+                        <option value="COD">Cash on Delivery (COD)</option>
+                        <option value="RuPay">RuPay Card / NetBanking</option>
+                    </select>
+                </div>
+                <div class="pt-2 border-t flex justify-between items-center text-sm font-bold">
+                    <span>Payable (Incl. 5% GST):</span>
+                    <span class="text-terracotta text-lg" x-text="'₹' + Math.round(cartSubtotal * 1.05).toLocaleString('en-IN')"></span>
+                </div>
+                <button type="submit" class="w-full bg-terracotta hover:bg-terracotta-dark text-white py-3.5 rounded-xl font-bold text-sm shadow-lg">
+                    Confirm & Place Order
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- PRINTABLE INVOICE MODAL -->
+    <div x-show="invoiceModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/70 backdrop-blur-sm" x-cloak>
+        <div class="bg-white rounded-3xl max-w-xl w-full p-8 shadow-2xl border border-stone-200 space-y-6">
+            <div id="printable-invoice" class="space-y-4 text-xs">
+                <div class="flex justify-between items-start border-b pb-4">
+                    <div>
+                        <h2 class="font-serif text-xl font-bold text-stone-900">कलाकृति • KALAKRITI INDIA</h2>
+                        <p class="text-[10px] text-stone-500">Tax Invoice (Indian Handicrafts 5% GST Slab) • GSTIN: 27AABCK9821M1Z5</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="bg-forestGreen/15 text-forestGreen font-bold px-3 py-1 rounded-full text-[11px]" x-text="selectedInvoice?.invoiceNumber"></span>
+                        <p class="text-[10px] text-stone-500 mt-1" x-text="'AWB: ' + selectedInvoice?.awbNumber"></p>
+                    </div>
+                </div>
+                <div class="bg-warmSand/50 p-3 rounded-xl grid grid-cols-2 gap-2 text-stone-700">
+                    <div>
+                        <p class="font-bold">Billed To:</p>
+                        <p x-text="selectedInvoice?.customerName"></p>
+                        <p x-text="selectedInvoice?.address + ' - ' + selectedInvoice?.pincode"></p>
+                        <p x-text="'Phone: ' + selectedInvoice?.phone"></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold">Payment Status:</p>
+                        <p x-text="selectedInvoice?.paymentMethod + ' (' + selectedInvoice?.paymentStatus + ')'"></p>
+                    </div>
+                </div>
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b text-stone-500 uppercase text-[10px]">
+                            <th class="py-2">Item</th>
+                            <th class="py-2 text-center">Qty</th>
+                            <th class="py-2 text-right">Price</th>
+                            <th class="py-2 text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-stone-100">
+                        <template x-for="item in selectedInvoice?.items" :key="item.name">
+                            <tr>
+                                <td class="py-2 font-semibold text-stone-900" x-text="item.name"></td>
+                                <td class="py-2 text-center" x-text="item.qty"></td>
+                                <td class="py-2 text-right" x-text="'₹' + item.price.toLocaleString('en-IN')"></td>
+                                <td class="py-2 text-right font-bold" x-text="'₹' + (item.price * item.qty).toLocaleString('en-IN')"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+                <div class="border-t pt-3 space-y-1 text-right font-medium">
+                    <p>Subtotal: <strong class="text-stone-900" x-text="'₹' + (selectedInvoice?.subtotal || 0).toLocaleString('en-IN')"></strong></p>
+                    <p>GST (5%): <strong class="text-stone-900" x-text="'₹' + (selectedInvoice?.gstAmount || 0).toLocaleString('en-IN')"></strong></p>
+                    <p class="text-sm font-extrabold text-terracotta pt-1">Grand Total: <strong x-text="'₹' + (selectedInvoice?.totalAmount || 0).toLocaleString('en-IN')"></strong></p>
+                </div>
+            </div>
+            <div class="flex gap-3 pt-2 border-t">
+                <button @click="window.print()" class="flex-1 bg-forestGreen hover:bg-forestGreen-light text-white py-3 rounded-xl font-bold text-xs shadow">
+                    <i class="fa-solid fa-print mr-1"></i> Print / Save PDF Bill
+                </button>
+                <button @click="invoiceModalOpen = false" class="px-5 bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-xl text-xs font-bold">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div x-show="toastMessage" x-transition class="fixed bottom-6 right-6 z-50 bg-stone-900 text-white px-6 py-3 rounded-2xl shadow-2xl text-xs font-bold border border-white/10" x-cloak>
+        <span x-text="toastMessage"></span>
+    </div>
+
+    <!-- ALPINE SCRIPT -->
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('kalakritiStore', () => ({
+                currentTab: 'shop',
+                products: [],
+                selectedCategory: 'All',
+                searchQuery: '',
+                cart: [],
+                cartOpen: false,
+                checkoutModalOpen: false,
+                invoiceModalOpen: false,
+                selectedInvoice: null,
+                toastMessage: '',
+                
+                isOwnerAuthenticated: localStorage.getItem('kalakriti_token') ? true : false,
+                ownerLoginModalOpen: false,
+                ownerLoginForm: { ownerId: '', passcode: '' },
+                ownerLoginError: '',
+                ownerStats: { totalIncome: 0, totalGst: 0, pendingCod: 0, totalOrders: 0 },
+                ownerOrders: [],
+
+                checkoutForm: { customerName: '', phone: '', address: '', pincode: '', paymentMethod: 'UPI' },
+
+                async init() {
+                    await this.fetchProducts();
+                    if (this.isOwnerAuthenticated) {
+                        this.fetchOwnerDashboard();
+                    }
+                },
+
+                async fetchProducts() {
+                    try {
+                        const res = await fetch('/api/products');
+                        if (res.ok) this.products = await res.json();
+                    } catch (err) {
+                        console.error('Failed fetching products', err);
+                    }
+                },
+
+                get filteredProducts() {
+                    if (!Array.isArray(this.products)) return [];
+                    let res = this.products;
+                    if (this.selectedCategory !== 'All') {
+                        res = res.filter(p => p.category === this.selectedCategory);
+                    }
+                    if (this.searchQuery.trim()) {
+                        const q = this.searchQuery.toLowerCase();
+                        res = res.filter(p => p.name.toLowerCase().includes(q) || (p.artisanRegion && p.artisanRegion.toLowerCase().includes(q)));
+                    }
+                    return res;
+                },
+
+                addToCart(product) {
+                    const existing = this.cart.find(i => i.productId === product._id);
+                    if (existing) {
+                        if (existing.qty >= product.stock) {
+                            this.showToast('Maximum available stock reached.');
+                            return;
+                        }
+                        existing.qty++;
+                    } else {
+                        this.cart.push({
+                            productId: product._id,
+                            name: product.name,
+                            price: product.price,
+                            image: product.image,
+                            qty: 1
+                        });
+                    }
+                    this.showToast(`Added "${product.name}" to cart.`);
+                },
+
+                removeFromCart(productId) {
+                    this.cart = this.cart.filter(i => i.productId !== productId);
+                    this.showToast('Item removed from cart.');
+                },
+
+                get cartTotalCount() {
+                    return this.cart.reduce((sum, i) => sum + i.qty, 0);
+                },
+
+                get cartSubtotal() {
+                    return this.cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+                },
+
+                async placeOrder() {
+                    try {
+                        const orderPayload = {
+                            customerName: this.checkoutForm.customerName,
+                            phone: this.checkoutForm.phone,
+                            address: this.checkoutForm.address,
+                            pincode: this.checkoutForm.pincode,
+                            paymentMethod: this.checkoutForm.paymentMethod,
+                            items: this.cart
+                        };
+
+                        const res = await fetch('/api/orders', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(orderPayload)
+                        });
+                        const data = await res.json();
+
+                        if (res.ok) {
+                            this.showToast(`🎉 Order placed! Invoice: ${data.order.invoiceNumber}`);
+                            this.cart = [];
+                            this.checkoutModalOpen = false;
+                            this.checkoutForm = { customerName: '', phone: '', address: '', pincode: '', paymentMethod: 'UPI' };
+                            await this.fetchProducts();
+                            if (this.isOwnerAuthenticated) {
+                                this.fetchOwnerDashboard();
+                            }
+                            // Automatically open invoice print popup for the new order
+                            this.openInvoiceModal(data.order);
+                        } else {
+                            this.showToast(data.message || 'Order failed.');
+                        }
+                    } catch (err) {
+                        this.showToast('Network error while placing order.');
+                    }
+                },
+
+                openInvoiceModal(ord) {
+                    this.selectedInvoice = ord;
+                    this.invoiceModalOpen = true;
+                },
+
+                openOwnerPortal() {
+                    if (this.isOwnerAuthenticated) {
+                        this.currentTab = 'owner-backend';
+                        this.fetchOwnerDashboard();
+                    } else {
+                        this.ownerLoginModalOpen = true;
+                    }
+                },
+
+                async loginOwner() {
+                    try {
+                        const res = await fetch('/api/owner/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.ownerLoginForm)
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            localStorage.setItem('kalakriti_token', data.token);
+                            this.isOwnerAuthenticated = true;
+                            this.ownerLoginModalOpen = false;
+                            this.currentTab = 'owner-backend';
+                            this.fetchOwnerDashboard();
+                            this.showToast('🔓 Owner login successful!');
+                        } else {
+                            this.ownerLoginError = data.message;
+                        }
+                    } catch (err) {
+                        this.ownerLoginError = 'Login request failed.';
+                    }
+                },
+
+                async fetchOwnerDashboard() {
+                    try {
+                        const token = localStorage.getItem('kalakriti_token');
+                        const res = await fetch('/api/owner/dashboard', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.ownerStats = data.stats;
+                            this.ownerOrders = data.orders;
+                        } else {
+                            this.logoutOwner();
+                        }
+                    } catch (err) {
+                        console.error('Dashboard error', err);
+                    }
+                },
+
+                logoutOwner() {
+                    localStorage.removeItem('kalakriti_token');
+                    this.isOwnerAuthenticated = false;
+                    this.currentTab = 'shop';
+                    this.showToast('🔒 Owner session locked.');
+                },
+
+                showToast(msg) {
+                    this.toastMessage = msg;
+                    setTimeout(() => { this.toastMessage = ''; }, 4000);
+                }
+            }));
+        });
+    </script>
+</body>
+</html>

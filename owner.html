@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalakriti | Private Owner Backend</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-stone-100 text-stone-900">
+  <!-- Owner Login Gate -->
+  <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white p-8 rounded-2xl shadow-lg max-w-sm w-full space-y-4">
+      <h2 class="text-2xl font-bold text-center text-[#1E4620]">Owner Backend Login</h2>
+      <p class="text-xs text-center text-stone-500">Restricted to Kalakriti Store Owner Only</p>
+      <input id="owner-id" placeholder="Owner ID" class="w-full border p-2.5 rounded text-sm" />
+      <input id="owner-pass" type="password" placeholder="Passcode" class="w-full border p-2.5 rounded text-sm" />
+      <button onclick="loginOwner()" class="w-full bg-[#1E4620] text-white py-2.5 rounded-lg font-bold">
+        Unlock Owner Dashboard
+      </button>
+    </div>
+  </div>
+
+  <!-- Owner Control Panel -->
+  <div id="dashboard-screen" class="hidden max-w-7xl mx-auto p-6 space-y-8">
+    <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm">
+      <div>
+        <h1 class="text-xl font-bold text-[#1E4620]">Kalakriti Private Owner Backend</h1>
+        <p class="text-xs text-stone-500">Stock • Orders • Delivery • GST Billing • Total Income</p>
+      </div>
+      <button onclick="logout()" class="bg-red-600 text-white px-4 py-1.5 rounded text-sm font-medium">Lock & Logout</button>
+    </div>
+
+    <!-- Total Income & Billing Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-xl border-l-4 border-emerald-600 shadow-sm">
+        <p class="text-xs text-stone-500">Total Gross Income</p>
+        <p class="text-2xl font-bold mt-1">₹<span id="stat-income">0</span></p>
+      </div>
+      <div class="bg-white p-5 rounded-xl border-l-4 border-amber-500 shadow-sm">
+        <p class="text-xs text-stone-500">GST Collected (5%)</p>
+        <p class="text-2xl font-bold mt-1">₹<span id="stat-gst">0</span></p>
+      </div>
+      <div class="bg-white p-5 rounded-xl border-l-4 border-orange-600 shadow-sm">
+        <p class="text-xs text-stone-500">Pending COD Billing</p>
+        <p class="text-2xl font-bold mt-1">₹<span id="stat-cod">0</span></p>
+      </div>
+      <div class="bg-white p-5 rounded-xl border-l-4 border-blue-600 shadow-sm">
+        <p class="text-xs text-stone-500">Total Orders</p>
+        <p class="text-2xl font-bold mt-1" id="stat-orders">0</p>
+      </div>
+    </div>
+
+    <!-- Orders, Delivery & GST Billing Table -->
+    <div class="bg-white p-6 rounded-xl shadow-sm overflow-x-auto">
+      <h2 class="text-lg font-bold mb-4">Customer Orders, Delivery & GST Billing</h2>
+      <table class="w-full text-left text-sm">
+        <thead class="border-b bg-stone-50">
+          <tr>
+            <th class="p-3">GST Invoice</th>
+            <th class="p-3">Customer & Pincode</th>
+            <th class="p-3">Billing Total</th>
+            <th class="p-3">Payment</th>
+            <th class="p-3">Courier & AWB</th>
+            <th class="p-3">Delivery Status</th>
+          </tr>
+        </thead>
+        <tbody id="orders-table"></tbody>
+      </table>
+    </div>
+
+    <!-- Stock Management -->
+    <div class="bg-white p-6 rounded-xl shadow-sm overflow-x-auto">
+      <h2 class="text-lg font-bold mb-4">Live Stock & Inventory Control</h2>
+      <table class="w-full text-left text-sm">
+        <thead class="border-b bg-stone-50">
+          <tr>
+            <th class="p-3">Product Name</th>
+            <th class="p-3">Category</th>
+            <th class="p-3">Price</th>
+            <th class="p-3">Current Stock</th>
+            <th class="p-3">Update Stock</th>
+          </tr>
+        </thead>
+        <tbody id="stock-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let token = localStorage.getItem('kalakriti_owner_token');
+    if (token) loadDashboard();
+
+    async function loginOwner() {
+      const ownerId = document.getElementById('owner-id').value;
+      const passcode = document.getElementById('owner-pass').value;
+      const res = await fetch('/api/owner/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ownerId, passcode })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        token = data.token;
+        localStorage.setItem('kalakriti_owner_token', token);
+        loadDashboard();
+      } else {
+        alert(data.message);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('kalakriti_owner_token');
+      location.reload();
+    }
+
+    async function loadDashboard() {
+      const res = await fetch('/api/owner/dashboard', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return logout();
+
+      const { stats, products, orders } = await res.json();
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('dashboard-screen').classList.remove('hidden');
+
+      document.getElementById('stat-income').innerText = stats.totalIncome.toLocaleString('en-IN');
+      document.getElementById('stat-gst').innerText = stats.totalGst.toLocaleString('en-IN');
+      document.getElementById('stat-cod').innerText = stats.pendingCod.toLocaleString('en-IN');
+      document.getElementById('stat-orders').innerText = stats.totalOrders;
+
+      document.getElementById('orders-table').innerHTML = orders.length ? orders.map(o => `
+        <tr class="border-b">
+          <td class="p-3 font-mono font-bold">${o.invoiceNumber}</td>
+          <td class="p-3">${o.customerName}<br><span class="text-xs text-stone-500">${o.pincode} • ${o.phone}</span></td>
+          <td class="p-3 font-bold">₹${o.totalAmount.toLocaleString('en-IN')}<br><span class="text-xs text-stone-400">GST: ₹${o.gstAmount}</span></td>
+          <td class="p-3">${o.paymentMethod} (${o.paymentStatus})</td>
+          <td class="p-3 text-xs">${o.courierPartner}<br>${o.awbNumber}</td>
+          <td class="p-3">
+            <select onchange="updateOrder('${o._id}', this.value)" class="border p-1 rounded text-xs">
+              ${['Processing', 'Packed', 'Shipped', 'Delivered'].map(st =>
+                `<option value="${st}" ${o.orderStatus === st ? 'selected' : ''}>${st}</option>`
+              ).join('')}
+            </select>
+          </td>
+        </tr>
+      `).join('') : '<tr><td colspan="6" class="p-4 text-center text-stone-400">No customer orders yet.</td></tr>';
+
+      document.getElementById('stock-table').innerHTML = products.map(p => `
+        <tr class="border-b">
+          <td class="p-3 font-medium">${p.name}</td>
+          <td class="p-3">${p.category}</td>
+          <td class="p-3">₹${p.price.toLocaleString('en-IN')}</td>
+          <td class="p-3 font-bold ${p.stock <= 5 ? 'text-red-600' : 'text-emerald-700'}">${p.stock} units</td>
+          <td class="p-3 flex gap-2">
+            <input type="number" id="stk-${p._id}" value="${p.stock}" class="border w-20 p-1 rounded text-xs" />
+            <button onclick="updateStock('${p._id}')" class="bg-stone-800 text-white px-3 py-1 rounded text-xs">Save</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function updateStock(id) {
+      const stock = Number(document.getElementById(`stk-${id}`).value);
+      await fetch(`/api/owner/products/${id}/stock`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ stock })
+      });
+      loadDashboard();
+    }
+
+    async function updateOrder(id, orderStatus) {
+      const paymentStatus = orderStatus === 'Delivered' ? 'Paid' : undefined;
+      await fetch(`/api/owner/orders/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orderStatus, ...(paymentStatus && { paymentStatus }) })
+      });
+      loadDashboard();
+    }
+  </script>
+</body>
+</html>
+```[cite: 6]
