@@ -50,8 +50,8 @@
 
     <!-- HEADER & NAVIGATION -->
     <header class="sticky top-0 z-40 bg-ivoryCream/95 backdrop-blur-md border-b border-stone-200 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
-            <a href="#" @click.prevent="currentTab = 'shop'; selectedCategory = 'All'" class="flex items-center gap-2.5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-3">
+            <a href="#" @click.prevent="currentTab = 'shop'; selectedCategory = 'All'" class="flex items-center gap-2.5 shrink-0">
                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-terracotta to-amberGold flex items-center justify-center text-white shadow-md">
                     <i class="fa-solid fa-om text-lg"></i>
                 </div>
@@ -62,18 +62,50 @@
             </a>
 
             <!-- Search Bar -->
-            <div class="hidden md:flex flex-1 max-w-md mx-6">
+            <div class="hidden md:flex flex-1 max-w-md mx-4">
                 <input type="text" x-model="searchQuery" placeholder="Search Crochet, Totes, Kashmiri Box, Ethnic Wear..." 
                        class="w-full bg-warmSand/60 border border-stone-300 rounded-full py-2.5 pl-5 pr-4 text-sm focus:outline-none focus:border-terracotta">
             </div>
 
             <!-- Actions -->
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Customer Auth / Profile / My Orders -->
+                <template x-if="!isCustomerAuthenticated">
+                    <button @click="openCustomerAuthModal('login')" 
+                            class="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold bg-warmSand hover:bg-amberGold-light text-stone-900 border border-stone-300 transition-all">
+                        <i class="fa-solid fa-user text-terracotta"></i>
+                        <span>Customer Login</span>
+                    </button>
+                </template>
+
+                <template x-if="isCustomerAuthenticated">
+                    <div class="flex items-center gap-1.5 sm:gap-2">
+                        <button @click="openMyOrdersTab()" 
+                                :class="currentTab === 'my-orders' ? 'bg-terracotta text-white' : 'bg-warmSand hover:bg-amberGold-light text-stone-900 border border-stone-300'"
+                                class="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all">
+                            <i class="fa-solid fa-box-open"></i>
+                            <span class="hidden sm:inline">My Orders</span>
+                            <span class="bg-stone-900/15 px-1.5 py-0.2 rounded-full text-[10px]" x-text="customerOrders.length"></span>
+                        </button>
+                        <button @click="openProfileTab()" 
+                                :class="currentTab === 'profile' ? 'bg-forestGreen text-white' : 'bg-white hover:bg-warmSand text-stone-900 border border-stone-300'"
+                                class="flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all">
+                            <i class="fa-solid fa-id-card text-terracotta"></i>
+                            <span class="hidden lg:inline" x-text="customer?.name ? customer.name.split(' ')[0] : 'Profile'"></span>
+                        </button>
+                        <button @click="logoutCustomer()" title="Logout Customer"
+                                class="p-2 rounded-full text-stone-500 hover:text-red-600 hover:bg-red-50 transition-colors text-xs">
+                            <i class="fa-solid fa-right-from-bracket"></i>
+                        </button>
+                    </div>
+                </template>
+
+                <!-- Owner Portal Button -->
                 <button @click="openOwnerPortal()" 
                         :class="isOwnerAuthenticated ? 'bg-forestGreen text-white ring-2 ring-amberGold' : 'bg-stone-900 hover:bg-terracotta text-white'"
-                        class="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all shadow-sm">
+                        class="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold transition-all shadow-sm">
                     <i class="fa-solid fa-lock text-amberGold"></i>
-                    <span x-text="isOwnerAuthenticated ? 'Owner Dashboard' : 'Owner Login'"></span>
+                    <span class="hidden sm:inline" x-text="isOwnerAuthenticated ? 'Owner Dashboard' : 'Owner Login'"></span>
                 </button>
 
                 <!-- Cart Button -->
@@ -90,26 +122,36 @@
 
         <!-- Categories Bar -->
         <div class="bg-warmSand/70 border-t border-stone-200 overflow-x-auto">
-            <div class="max-w-7xl mx-auto px-4 flex items-center gap-4 py-2.5 whitespace-nowrap text-xs font-semibold text-stone-700">
-                <button @click="selectedCategory = 'All'" :class="selectedCategory === 'All' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">All Crafts</button>
-                <button @click="selectedCategory = 'Crochet'" :class="selectedCategory === 'Crochet' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Crochet</button>
-                <button @click="selectedCategory = 'Totes & Bags'" :class="selectedCategory === 'Totes & Bags' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Totes & Bags</button>
-                <button @click="selectedCategory = 'Kashmiri & Accessories'" :class="selectedCategory === 'Kashmiri & Accessories' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Kashmiri & Accessories</button>
-                <button @click="selectedCategory = 'Ethnic Wear'" :class="selectedCategory === 'Ethnic Wear' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Ethnic Wear</button>
-                <button @click="selectedCategory = 'Lippan & Paintings'" :class="selectedCategory === 'Lippan & Paintings' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Lippan & Paintings</button>
+            <div class="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4 py-2.5 whitespace-nowrap text-xs font-semibold text-stone-700">
+                <div class="flex items-center gap-4">
+                    <button @click="currentTab = 'shop'; selectedCategory = 'All'" :class="currentTab === 'shop' && selectedCategory === 'All' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">All Crafts</button>
+                    <button @click="currentTab = 'shop'; selectedCategory = 'Crochet'" :class="currentTab === 'shop' && selectedCategory === 'Crochet' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Crochet</button>
+                    <button @click="currentTab = 'shop'; selectedCategory = 'Totes & Bags'" :class="currentTab === 'shop' && selectedCategory === 'Totes & Bags' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Totes & Bags</button>
+                    <button @click="currentTab = 'shop'; selectedCategory = 'Kashmiri & Accessories'" :class="currentTab === 'shop' && selectedCategory === 'Kashmiri & Accessories' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Kashmiri & Accessories</button>
+                    <button @click="currentTab = 'shop'; selectedCategory = 'Ethnic Wear'" :class="currentTab === 'shop' && selectedCategory === 'Ethnic Wear' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Ethnic Wear</button>
+                    <button @click="currentTab = 'shop'; selectedCategory = 'Lippan & Paintings'" :class="currentTab === 'shop' && selectedCategory === 'Lippan & Paintings' ? 'text-terracotta font-bold border-b-2 border-terracotta' : ''">Lippan & Paintings</button>
+                </div>
+                <div x-show="isCustomerAuthenticated" class="flex items-center gap-3 text-[11px]" x-cloak>
+                    <button @click="openProfileTab()" class="hover:text-terracotta font-bold"><i class="fa-solid fa-user mr-1"></i>Profile</button>
+                    <button @click="openMyOrdersTab()" class="hover:text-terracotta font-bold"><i class="fa-solid fa-receipt mr-1"></i>My Orders</button>
+                </div>
             </div>
         </div>
     </header>
 
     <!-- MAIN APP CONTENT -->
     <main class="min-h-screen">
+        <!-- SHOP VIEW -->
         <div x-show="currentTab === 'shop'">
             <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <div class="mb-8 pb-4 border-b border-stone-200">
+                <div class="mb-8 pb-4 border-b border-stone-200 flex flex-wrap items-center justify-between gap-4">
                     <h2 class="font-serif text-3xl font-extrabold text-stone-900">
                         <span x-text="selectedCategory === 'All' ? 'Authentic Indian Handicrafts' : selectedCategory"></span>
                         <span class="text-sm font-sans font-normal text-stone-500 ml-2" x-text="'(' + filteredProducts.length + ' items)'"></span>
                     </h2>
+                    <div x-show="isCustomerAuthenticated" class="text-xs bg-warmSand px-4 py-2 rounded-full text-stone-700 font-semibold" x-cloak>
+                        Welcome back, <span class="text-terracotta font-bold" x-text="customer?.name"></span>!
+                    </div>
                 </div>
 
                 <!-- Products Grid -->
@@ -144,6 +186,132 @@
                     </template>
                 </div>
             </section>
+        </div>
+
+        <!-- CUSTOMER PROFILE VIEW -->
+        <div x-show="currentTab === 'profile' && isCustomerAuthenticated" class="py-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8" x-cloak>
+            <div class="bg-white rounded-3xl border border-stone-200 shadow-lg p-6 sm:p-8">
+                <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-stone-200 mb-6">
+                    <div>
+                        <span class="bg-terracotta/10 text-terracotta px-3 py-1 rounded-full text-xs font-bold">Customer Account</span>
+                        <h2 class="font-serif text-2xl sm:text-3xl font-extrabold text-stone-900 mt-2">My Profile</h2>
+                        <p class="text-xs text-stone-500 mt-1">Manage your contact details and default delivery address.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button @click="openMyOrdersTab()" class="bg-warmSand hover:bg-amberGold-light text-stone-900 px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
+                            <i class="fa-solid fa-box-open mr-1 text-terracotta"></i> View My Orders (<span x-text="customerOrders.length"></span>)
+                        </button>
+                        <button @click="currentTab = 'shop'" class="bg-stone-900 hover:bg-terracotta text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
+                            Back to Shop
+                        </button>
+                    </div>
+                </div>
+
+                <form @submit.prevent="updateCustomerProfile" class="space-y-4 text-xs">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-bold text-stone-700 uppercase mb-1">Full Name *</label>
+                            <input type="text" x-model="profileForm.name" required class="w-full bg-warmSand/50 border border-stone-300 rounded-xl p-3 text-sm">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-stone-700 uppercase mb-1">Email Address</label>
+                            <input type="email" :value="customer?.email" disabled class="w-full bg-stone-100 border border-stone-200 rounded-xl p-3 text-sm text-stone-500 cursor-not-allowed">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block font-bold text-stone-700 uppercase mb-1">Mobile Number *</label>
+                            <input type="tel" x-model="profileForm.phone" required class="w-full bg-warmSand/50 border border-stone-300 rounded-xl p-3 text-sm">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-stone-700 uppercase mb-1">6-Digit Pincode *</label>
+                            <input type="text" x-model="profileForm.pincode" maxlength="6" class="w-full bg-warmSand/50 border border-stone-300 rounded-xl p-3 text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-stone-700 uppercase mb-1">Delivery Address</label>
+                        <textarea x-model="profileForm.address" rows="2" placeholder="House No, Street, Landmark, City" class="w-full bg-warmSand/50 border border-stone-300 rounded-xl p-3 text-sm"></textarea>
+                    </div>
+                    <div class="pt-2 flex justify-end">
+                        <button type="submit" class="bg-forestGreen hover:bg-forestGreen-light text-white px-6 py-3 rounded-xl font-bold text-sm shadow-md transition-all">
+                            <i class="fa-solid fa-check mr-1"></i> Save Profile Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- CUSTOMER MY ORDERS VIEW -->
+        <div x-show="currentTab === 'my-orders' && isCustomerAuthenticated" class="py-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8" x-cloak>
+            <div class="bg-white rounded-3xl border border-stone-200 shadow-lg p-6 sm:p-8">
+                <div class="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-stone-200 mb-6">
+                    <div>
+                        <span class="bg-forestGreen/10 text-forestGreen px-3 py-1 rounded-full text-xs font-bold">Personal Order History</span>
+                        <h2 class="font-serif text-2xl sm:text-3xl font-extrabold text-stone-900 mt-2">My Orders</h2>
+                        <p class="text-xs text-stone-500 mt-1">Showing orders placed by <strong class="text-stone-800" x-text="customer?.name"></strong> (<span x-text="customer?.email"></span>).</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button @click="fetchCustomerProfile()" class="bg-warmSand hover:bg-amberGold-light text-stone-900 px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
+                            <i class="fa-solid fa-rotate-right mr-1"></i> Refresh Orders
+                        </button>
+                        <button @click="currentTab = 'shop'" class="bg-terracotta hover:bg-terracotta-dark text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
+                            Continue Shopping
+                        </button>
+                    </div>
+                </div>
+
+                <template x-if="customerOrders.length === 0">
+                    <div class="text-center py-16 space-y-3">
+                        <i class="fa-solid fa-box-open text-4xl text-stone-300"></i>
+                        <p class="text-stone-600 font-semibold text-sm">You haven't placed any orders yet.</p>
+                        <button @click="currentTab = 'shop'" class="bg-terracotta text-white px-5 py-2.5 rounded-xl text-xs font-bold">Explore Handicrafts</button>
+                    </div>
+                </template>
+
+                <div x-show="customerOrders.length > 0" class="space-y-4">
+                    <template x-for="ord in customerOrders" :key="ord._id">
+                        <div class="border border-stone-200 rounded-2xl p-5 bg-ivoryCream/60 hover:bg-white transition-all">
+                            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-stone-200 text-xs">
+                                <div>
+                                    <span class="font-extrabold text-terracotta text-sm" x-text="ord.invoiceNumber"></span>
+                                    <span class="text-stone-400 mx-2">•</span>
+                                    <span class="text-stone-600 font-semibold" x-text="'AWB: ' + ord.awbNumber"></span>
+                                    <span class="text-stone-400 mx-2" x-show="ord.createdAt">•</span>
+                                    <span class="text-stone-500" x-show="ord.createdAt" x-text="new Date(ord.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })"></span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2.5 py-1 rounded-full text-[11px] font-bold"
+                                          :class="ord.paymentStatus === 'Paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
+                                          x-text="ord.paymentMethod + ' • ' + ord.paymentStatus"></span>
+                                    <button @click="openInvoiceModal(ord)" class="bg-stone-900 hover:bg-terracotta text-white px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors">
+                                        <i class="fa-solid fa-print mr-1"></i> Invoice
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+                                <div class="space-y-1">
+                                    <template x-for="item in ord.items" :key="item.name">
+                                        <p class="text-stone-800 font-medium">
+                                            <span class="font-bold" x-text="item.name"></span>
+                                            <span class="text-stone-500" x-text="' × ' + item.qty + ' (₹' + (item.price * item.qty).toLocaleString('en-IN') + ')'"></span>
+                                        </p>
+                                    </template>
+                                    <p class="text-[11px] text-stone-500 pt-1">
+                                        <i class="fa-solid fa-location-dot text-terracotta mr-1"></i>
+                                        <span x-text="ord.address + ' - ' + ord.pincode"></span>
+                                    </p>
+                                </div>
+                                <div class="sm:text-right shrink-0">
+                                    <p class="text-stone-500">Subtotal: <span class="font-semibold text-stone-700" x-text="'₹' + ord.subtotal.toLocaleString('en-IN')"></span></p>
+                                    <p class="text-stone-500">5% GST: <span class="font-semibold text-stone-700" x-text="'₹' + ord.gstAmount.toLocaleString('en-IN')"></span></p>
+                                    <p class="text-sm font-extrabold text-stone-900 mt-1">Total: <span class="text-terracotta" x-text="'₹' + ord.totalAmount.toLocaleString('en-IN')"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
 
         <!-- OWNER BACKEND DASHBOARD VIEW -->
@@ -228,6 +396,74 @@
         </div>
     </main>
 
+    <!-- CUSTOMER LOGIN / REGISTER MODAL -->
+    <div x-show="customerAuthModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/75 backdrop-blur-sm" x-cloak>
+        <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-stone-200 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-serif text-2xl font-bold text-stone-900" x-text="customerAuthMode === 'login' ? 'Customer Login' : 'Create Customer Account'"></h3>
+                <button @click="customerAuthModalOpen = false" class="text-stone-400 hover:text-stone-700"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Mode Switcher -->
+            <div class="grid grid-cols-2 bg-warmSand p-1 rounded-xl text-xs font-bold">
+                <button type="button" @click="customerAuthMode = 'login'; customerAuthError = ''"
+                        :class="customerAuthMode === 'login' ? 'bg-white text-terracotta shadow-sm' : 'text-stone-600'"
+                        class="py-2 rounded-lg transition-all">Login</button>
+                <button type="button" @click="customerAuthMode = 'register'; customerAuthError = ''"
+                        :class="customerAuthMode === 'register' ? 'bg-white text-terracotta shadow-sm' : 'text-stone-600'"
+                        class="py-2 rounded-lg transition-all">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form x-show="customerAuthMode === 'login'" @submit.prevent="loginCustomer" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-stone-700 uppercase mb-1">Email *</label>
+                    <input type="email" x-model="customerLoginForm.email" required placeholder="customer@example.com" class="w-full bg-warmSand/50 border rounded-lg p-3 text-sm">
+                </div>
+                <div>
+                    <label class="block font-bold text-stone-700 uppercase mb-1">Password *</label>
+                    <input type="password" x-model="customerLoginForm.password" required placeholder="••••••••" class="w-full bg-warmSand/50 border rounded-lg p-3 text-sm">
+                </div>
+                <p x-show="customerAuthError" class="text-xs text-red-600 font-bold" x-text="customerAuthError"></p>
+                <button type="submit" class="w-full bg-terracotta hover:bg-terracotta-dark text-white py-3 rounded-xl font-bold text-sm shadow-lg">Login to Account</button>
+            </form>
+
+            <!-- Register Form -->
+            <form x-show="customerAuthMode === 'register'" @submit.prevent="registerCustomer" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-stone-700 uppercase mb-1">Full Name *</label>
+                    <input type="text" x-model="customerRegisterForm.name" required placeholder="Your Full Name" class="w-full bg-warmSand/50 border rounded-lg p-2.5 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div>
+                        <label class="block font-bold text-stone-700 uppercase mb-1">Email *</label>
+                        <input type="email" x-model="customerRegisterForm.email" required placeholder="you@example.com" class="w-full bg-warmSand/50 border rounded-lg p-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-stone-700 uppercase mb-1">Mobile *</label>
+                        <input type="tel" x-model="customerRegisterForm.phone" required placeholder="9876543210" class="w-full bg-warmSand/50 border rounded-lg p-2.5 text-sm">
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2.5">
+                    <div class="col-span-2">
+                        <label class="block font-bold text-stone-700 uppercase mb-1">Address</label>
+                        <input type="text" x-model="customerRegisterForm.address" placeholder="Street / Area" class="w-full bg-warmSand/50 border rounded-lg p-2.5 text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-stone-700 uppercase mb-1">Pincode</label>
+                        <input type="text" x-model="customerRegisterForm.pincode" maxlength="6" placeholder="411001" class="w-full bg-warmSand/50 border rounded-lg p-2.5 text-sm">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-bold text-stone-700 uppercase mb-1">Password *</label>
+                    <input type="password" x-model="customerRegisterForm.password" required minlength="6" placeholder="Minimum 6 characters" class="w-full bg-warmSand/50 border rounded-lg p-2.5 text-sm">
+                </div>
+                <p x-show="customerAuthError" class="text-xs text-red-600 font-bold" x-text="customerAuthError"></p>
+                <button type="submit" class="w-full bg-forestGreen hover:bg-forestGreen-light text-white py-3 rounded-xl font-bold text-sm shadow-lg">Create Account</button>
+            </form>
+        </div>
+    </div>
+
     <!-- OWNER LOGIN MODAL -->
     <div x-show="ownerLoginModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/75 backdrop-blur-sm" x-cloak>
         <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-stone-200 space-y-4">
@@ -278,7 +514,7 @@
                     <span>Subtotal (INR)</span>
                     <span class="text-terracotta" x-text="'₹' + cartSubtotal.toLocaleString('en-IN')"></span>
                 </div>
-                <button @click="checkoutModalOpen = true; cartOpen = false" :disabled="cart.length === 0" 
+                <button @click="openCheckoutModal()" :disabled="cart.length === 0" 
                         class="w-full bg-terracotta hover:bg-terracotta-dark disabled:opacity-50 text-white py-3.5 rounded-xl font-bold text-xs shadow-lg">
                     Proceed to Secure Checkout
                 </button>
@@ -292,6 +528,9 @@
             <div class="flex items-center justify-between">
                 <h3 class="font-serif text-2xl font-bold text-stone-900">Secure Indian Checkout</h3>
                 <button @click="checkoutModalOpen = false" class="text-stone-400 hover:text-stone-700"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div x-show="isCustomerAuthenticated" class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-3.5 py-2 rounded-xl text-xs font-semibold">
+                <i class="fa-solid fa-circle-check mr-1"></i> Ordering as <strong x-text="customer?.name"></strong> — this order will appear in <strong>My Orders</strong>.
             </div>
             <form @submit.prevent="placeOrder" class="space-y-3 text-xs">
                 <div>
@@ -413,7 +652,19 @@
                 invoiceModalOpen: false,
                 selectedInvoice: null,
                 toastMessage: '',
-                
+
+                // Customer Auth, Profile & Orders State
+                customerToken: localStorage.getItem('kalakriti_customer_token') || '',
+                customer: null,
+                customerOrders: [],
+                customerAuthModalOpen: false,
+                customerAuthMode: 'login',
+                customerAuthError: '',
+                customerLoginForm: { email: '', password: '' },
+                customerRegisterForm: { name: '', email: '', phone: '', address: '', pincode: '', password: '' },
+                profileForm: { name: '', phone: '', address: '', pincode: '' },
+
+                // Owner State
                 isOwnerAuthenticated: localStorage.getItem('kalakriti_token') ? true : false,
                 ownerLoginModalOpen: false,
                 ownerLoginForm: { ownerId: '', passcode: '' },
@@ -423,11 +674,25 @@
 
                 checkoutForm: { customerName: '', phone: '', address: '', pincode: '', paymentMethod: 'UPI' },
 
+                get isCustomerAuthenticated() {
+                    return Boolean(this.customerToken);
+                },
+
                 async init() {
                     await this.fetchProducts();
+                    if (this.customerToken) {
+                        await this.fetchCustomerProfile();
+                    }
                     if (this.isOwnerAuthenticated) {
                         this.fetchOwnerDashboard();
                     }
+                },
+
+                showToast(msg) {
+                    this.toastMessage = msg;
+                    setTimeout(() => {
+                        if (this.toastMessage === msg) this.toastMessage = '';
+                    }, 3000);
                 },
 
                 async fetchProducts() {
@@ -439,6 +704,145 @@
                     }
                 },
 
+                // Customer Auth & Profile Methods
+                openCustomerAuthModal(mode = 'login') {
+                    this.customerAuthMode = mode;
+                    this.customerAuthError = '';
+                    this.customerAuthModalOpen = true;
+                },
+
+                async registerCustomer() {
+                    this.customerAuthError = '';
+                    try {
+                        const res = await fetch('/api/auth/register', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.customerRegisterForm)
+                        });
+                        const data = await res.json();
+                        if (!res.ok) {
+                            this.customerAuthError = data.message || 'Registration failed';
+                            return;
+                        }
+                        this.customerToken = data.token;
+                        localStorage.setItem('kalakriti_customer_token', data.token);
+                        this.customer = data.customer;
+                        this.syncFormsWithCustomer();
+                        this.customerOrders = [];
+                        this.customerAuthModalOpen = false;
+                        this.customerRegisterForm = { name: '', email: '', phone: '', address: '', pincode: '', password: '' };
+                        this.showToast('Account created successfully!');
+                    } catch (err) {
+                        this.customerAuthError = 'Network error. Please try again.';
+                    }
+                },
+
+                async loginCustomer() {
+                    this.customerAuthError = '';
+                    try {
+                        const res = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.customerLoginForm)
+                        });
+                        const data = await res.json();
+                        if (!res.ok) {
+                            this.customerAuthError = data.message || 'Invalid credentials';
+                            return;
+                        }
+                        this.customerToken = data.token;
+                        localStorage.setItem('kalakriti_customer_token', data.token);
+                        this.customer = data.customer;
+                        this.syncFormsWithCustomer();
+                        this.customerAuthModalOpen = false;
+                        this.customerLoginForm = { email: '', password: '' };
+                        await this.fetchCustomerProfile();
+                        this.showToast('Welcome back, ' + this.customer.name + '!');
+                    } catch (err) {
+                        this.customerAuthError = 'Network error. Please try again.';
+                    }
+                },
+
+                async fetchCustomerProfile() {
+                    if (!this.customerToken) return;
+                    try {
+                        const res = await fetch('/api/customer/profile', {
+                            headers: { 'Authorization': 'Bearer ' + this.customerToken }
+                        });
+                        if (res.status === 401 || res.status === 403) {
+                            this.logoutCustomer(false);
+                            return;
+                        }
+                        if (res.ok) {
+                            const data = await res.json();
+                            this.customer = data.customer;
+                            this.customerOrders = data.orders || [];
+                            this.syncFormsWithCustomer();
+                        }
+                    } catch (err) {
+                        console.error('Failed loading customer profile', err);
+                    }
+                },
+
+                syncFormsWithCustomer() {
+                    if (!this.customer) return;
+                    this.profileForm = {
+                        name: this.customer.name || '',
+                        phone: this.customer.phone || '',
+                        address: this.customer.address || '',
+                        pincode: this.customer.pincode || ''
+                    };
+                    if (!this.checkoutForm.customerName) this.checkoutForm.customerName = this.customer.name || '';
+                    if (!this.checkoutForm.phone) this.checkoutForm.phone = this.customer.phone || '';
+                    if (!this.checkoutForm.address) this.checkoutForm.address = this.customer.address || '';
+                    if (!this.checkoutForm.pincode) this.checkoutForm.pincode = this.customer.pincode || '';
+                },
+
+                async updateCustomerProfile() {
+                    try {
+                        const res = await fetch('/api/customer/profile', {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': 'Bearer ' + this.customerToken
+                            },
+                            body: JSON.stringify(this.profileForm)
+                        });
+                        const data = await res.json();
+                        if (!res.ok) {
+                            this.showToast(data.message || 'Could not update profile');
+                            return;
+                        }
+                        this.customer = data.customer;
+                        this.syncFormsWithCustomer();
+                        this.showToast('Profile updated successfully!');
+                    } catch (err) {
+                        this.showToast('Error updating profile');
+                    }
+                },
+
+                async openProfileTab() {
+                    await this.fetchCustomerProfile();
+                    this.currentTab = 'profile';
+                },
+
+                async openMyOrdersTab() {
+                    await this.fetchCustomerProfile();
+                    this.currentTab = 'my-orders';
+                },
+
+                logoutCustomer(notify = true) {
+                    this.customerToken = '';
+                    this.customer = null;
+                    this.customerOrders = [];
+                    localStorage.removeItem('kalakriti_customer_token');
+                    if (this.currentTab === 'profile' || this.currentTab === 'my-orders') {
+                        this.currentTab = 'shop';
+                    }
+                    if (notify) this.showToast('Logged out from customer account.');
+                },
+
+                // Shop & Cart Methods
                 get filteredProducts() {
                     if (!Array.isArray(this.products)) return [];
                     let res = this.products;
@@ -485,58 +889,85 @@
                     return this.cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
                 },
 
+                openCheckoutModal() {
+                    this.cartOpen = false;
+                    if (this.customer) {
+                        this.checkoutForm.customerName = this.customer.name || this.checkoutForm.customerName;
+                        this.checkoutForm.phone = this.customer.phone || this.checkoutForm.phone;
+                        this.checkoutForm.address = this.customer.address || this.checkoutForm.address;
+                        this.checkoutForm.pincode = this.customer.pincode || this.checkoutForm.pincode;
+                    }
+                    this.checkoutModalOpen = true;
+                },
+
                 async placeOrder() {
                     try {
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (this.customerToken) {
+                            headers['Authorization'] = 'Bearer ' + this.customerToken;
+                        }
+
                         const orderPayload = {
                             customerName: this.checkoutForm.customerName,
                             phone: this.checkoutForm.phone,
                             address: this.checkoutForm.address,
                             pincode: this.checkoutForm.pincode,
                             paymentMethod: this.checkoutForm.paymentMethod,
-                            items: this.cart
+                            items: this.cart.map(i => ({
+                                productId: i.productId,
+                                name: i.name,
+                                price: i.price,
+                                qty: i.qty
+                            }))
                         };
 
                         const res = await fetch('/api/orders', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers,
                             body: JSON.stringify(orderPayload)
                         });
                         const data = await res.json();
-
-                        if (res.ok) {
-                            this.showToast(`🎉 Order placed! Invoice: ${data.order.invoiceNumber}`);
-                            this.cart = [];
-                            this.checkoutModalOpen = false;
-                            this.checkoutForm = { customerName: '', phone: '', address: '', pincode: '', paymentMethod: 'UPI' };
-                            await this.fetchProducts();
-                            if (this.isOwnerAuthenticated) {
-                                this.fetchOwnerDashboard();
-                            }
-                            // Automatically open invoice print popup for the new order
-                            this.openInvoiceModal(data.order);
-                        } else {
-                            this.showToast(data.message || 'Order failed.');
+                        if (!res.ok) {
+                            this.showToast(data.message || 'Could not place order');
+                            return;
                         }
+
+                        this.cart = [];
+                        this.checkoutModalOpen = false;
+                        await this.fetchProducts();
+
+                        if (this.customerToken) {
+                            await this.fetchCustomerProfile();
+                        }
+                        if (this.isOwnerAuthenticated) {
+                            await this.fetchOwnerDashboard();
+                        }
+
+                        this.openInvoiceModal(data.order);
+                        this.showToast('Order placed! Invoice ' + data.order.invoiceNumber);
                     } catch (err) {
-                        this.showToast('Network error while placing order.');
+                        this.showToast('Error placing order.');
                     }
                 },
 
-                openInvoiceModal(ord) {
-                    this.selectedInvoice = ord;
+                openInvoiceModal(order) {
+                    this.selectedInvoice = order;
                     this.invoiceModalOpen = true;
                 },
 
+                // Owner Portal Methods
                 openOwnerPortal() {
                     if (this.isOwnerAuthenticated) {
                         this.currentTab = 'owner-backend';
                         this.fetchOwnerDashboard();
                     } else {
+                        this.ownerLoginError = '';
                         this.ownerLoginModalOpen = true;
                     }
                 },
 
                 async loginOwner() {
+                    this.ownerLoginError = '';
                     try {
                         const res = await fetch('/api/owner/login', {
                             method: 'POST',
@@ -544,49 +975,49 @@
                             body: JSON.stringify(this.ownerLoginForm)
                         });
                         const data = await res.json();
-                        if (res.ok) {
-                            localStorage.setItem('kalakriti_token', data.token);
-                            this.isOwnerAuthenticated = true;
-                            this.ownerLoginModalOpen = false;
-                            this.currentTab = 'owner-backend';
-                            this.fetchOwnerDashboard();
-                            this.showToast('🔓 Owner login successful!');
-                        } else {
-                            this.ownerLoginError = data.message;
+                        if (!res.ok) {
+                            this.ownerLoginError = data.message || 'Invalid credentials';
+                            return;
                         }
+                        localStorage.setItem('kalakriti_token', data.token);
+                        this.isOwnerAuthenticated = true;
+                        this.ownerLoginModalOpen = false;
+                        this.currentTab = 'owner-backend';
+                        await this.fetchOwnerDashboard();
+                        this.showToast('Owner session unlocked.');
                     } catch (err) {
-                        this.ownerLoginError = 'Login request failed.';
+                        this.ownerLoginError = 'Login failed.';
                     }
                 },
 
                 async fetchOwnerDashboard() {
+                    const token = localStorage.getItem('kalakriti_token');
+                    if (!token) return;
                     try {
-                        const token = localStorage.getItem('kalakriti_token');
                         const res = await fetch('/api/owner/dashboard', {
-                            headers: { 'Authorization': `Bearer ${token}` }
+                            headers: { 'Authorization': 'Bearer ' + token }
                         });
+                        if (res.status === 401 || res.status === 403) {
+                            this.logoutOwner(false);
+                            return;
+                        }
                         if (res.ok) {
                             const data = await res.json();
                             this.ownerStats = data.stats;
                             this.ownerOrders = data.orders;
-                        } else {
-                            this.logoutOwner();
                         }
                     } catch (err) {
-                        console.error('Dashboard error', err);
+                        console.error('Error loading owner dashboard', err);
                     }
                 },
 
-                logoutOwner() {
+                logoutOwner(notify = true) {
                     localStorage.removeItem('kalakriti_token');
                     this.isOwnerAuthenticated = false;
-                    this.currentTab = 'shop';
-                    this.showToast('🔒 Owner session locked.');
-                },
-
-                showToast(msg) {
-                    this.toastMessage = msg;
-                    setTimeout(() => { this.toastMessage = ''; }, 4000);
+                    if (this.currentTab === 'owner-backend') {
+                        this.currentTab = 'shop';
+                    }
+                    if (notify) this.showToast('Owner session locked.');
                 }
             }));
         });
