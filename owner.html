@@ -5,15 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kalakriti | Private Owner Backend</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      body * { visibility: hidden; }
+      #printable-invoice, #printable-invoice * { visibility: visible; }
+      #printable-invoice { position: fixed; left: 0; top: 0; width: 100%; background: white; padding: 24px; }
+    }
+  </style>
 </head>
 <body class="bg-stone-100 text-stone-900">
   <!-- Owner Login Gate -->
-  <div id="login-screen" class="min-h-screen flex items-center justify-center p-4">
+  <div id="login-screen" class="min-h-screen flex items-center justify-center p-4 bg-stone-950">
     <div class="bg-white p-8 rounded-2xl shadow-lg max-w-sm w-full space-y-4">
       <h2 class="text-2xl font-bold text-center text-[#1E4620]">Owner Backend Login</h2>
       <p class="text-xs text-center text-stone-500">Restricted to Kalakriti Store Owner Only</p>
-      <input id="owner-id" placeholder="Owner ID" class="w-full border p-2.5 rounded text-sm" />
-      <input id="owner-pass" type="password" placeholder="Passcode" class="w-full border p-2.5 rounded text-sm" />
+      <input id="owner-id" placeholder="Owner ID" autocomplete="off" class="w-full border p-2.5 rounded text-sm" />
+      <input id="owner-pass" type="password" placeholder="Password" autocomplete="off" class="w-full border p-2.5 rounded text-sm" />
       <button onclick="loginOwner()" class="w-full bg-[#1E4620] text-white py-2.5 rounded-lg font-bold">
         Unlock Owner Dashboard
       </button>
@@ -62,6 +69,7 @@
             <th class="p-3">Payment</th>
             <th class="p-3">Courier & AWB</th>
             <th class="p-3">Delivery Status</th>
+            <th class="p-3">Bill</th>
           </tr>
         </thead>
         <tbody id="orders-table"></tbody>
@@ -86,8 +94,53 @@
     </div>
   </div>
 
+  <!-- Printable GST Invoice Modal -->
+  <div id="invoice-modal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div id="printable-invoice" class="space-y-3 text-xs">
+        <div class="flex justify-between items-start border-b pb-3">
+          <div>
+            <h3 class="text-lg font-bold text-[#1E4620]">कलाकृति • KALAKRITI INDIA</h3>
+            <p class="text-[11px] text-stone-500">Tax Invoice (5% GST) • GSTIN: 27AABCK9821M1Z5</p>
+          </div>
+          <div class="text-right">
+            <p id="inv-number" class="font-mono font-bold text-sm"></p>
+            <p id="inv-awb" class="text-[11px] text-stone-500"></p>
+          </div>
+        </div>
+        <div class="bg-stone-50 p-3 rounded-lg">
+          <p id="inv-customer" class="font-bold"></p>
+          <p id="inv-address" class="text-stone-600"></p>
+          <p id="inv-phone" class="text-stone-600"></p>
+          <p id="inv-payment" class="font-semibold mt-1"></p>
+        </div>
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="border-b text-stone-500">
+              <th class="py-1.5">Item</th>
+              <th class="py-1.5 text-center">Qty</th>
+              <th class="py-1.5 text-right">Price</th>
+              <th class="py-1.5 text-right">Total</th>
+            </tr>
+          </thead>
+          <tbody id="inv-items" class="divide-y"></tbody>
+        </table>
+        <div class="border-t pt-2 text-right space-y-1">
+          <p>Subtotal: <strong id="inv-subtotal"></strong></p>
+          <p>GST (5%): <strong id="inv-gst"></strong></p>
+          <p class="text-sm font-bold text-[#1E4620]">Grand Total: <strong id="inv-total"></strong></p>
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2 border-t">
+        <button onclick="window.print()" class="flex-1 bg-[#1E4620] text-white py-2.5 rounded-lg text-xs font-bold">Print / Save PDF</button>
+        <button onclick="closeInvoiceModal()" class="px-4 bg-stone-200 rounded-lg text-xs font-bold">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let token = localStorage.getItem('kalakriti_owner_token');
+    let currentOrders = [];
     if (token) loadDashboard();
 
     async function loginOwner() {
@@ -120,6 +173,7 @@
       if (!res.ok) return logout();
 
       const { stats, products, orders } = await res.json();
+      currentOrders = orders;
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('dashboard-screen').classList.remove('hidden');
 
@@ -128,13 +182,13 @@
       document.getElementById('stat-cod').innerText = stats.pendingCod.toLocaleString('en-IN');
       document.getElementById('stat-orders').innerText = stats.totalOrders;
 
-      document.getElementById('orders-table').innerHTML = orders.length ? orders.map(o => `
+      document.getElementById('orders-table').innerHTML = orders.length ? orders.map((o, idx) => `
         <tr class="border-b">
           <td class="p-3 font-mono font-bold">${o.invoiceNumber}</td>
           <td class="p-3">${o.customerName}<br><span class="text-xs text-stone-500">${o.pincode} • ${o.phone}</span></td>
           <td class="p-3 font-bold">₹${o.totalAmount.toLocaleString('en-IN')}<br><span class="text-xs text-stone-400">GST: ₹${o.gstAmount}</span></td>
           <td class="p-3">${o.paymentMethod} (${o.paymentStatus})</td>
-          <td class="p-3 text-xs">${o.courierPartner}<br>${o.awbNumber}</td>
+          <td class="p-3 text-xs">${o.courierPartner || 'India Post'}<br>${o.awbNumber || ''}</td>
           <td class="p-3">
             <select onchange="updateOrder('${o._id}', this.value)" class="border p-1 rounded text-xs">
               ${['Processing', 'Packed', 'Shipped', 'Delivered'].map(st =>
@@ -142,8 +196,11 @@
               ).join('')}
             </select>
           </td>
+          <td class="p-3">
+            <button onclick="openInvoice(${idx})" class="bg-stone-800 text-white px-2.5 py-1 rounded text-xs">Print</button>
+          </td>
         </tr>
-      `).join('') : '<tr><td colspan="6" class="p-4 text-center text-stone-400">No customer orders yet.</td></tr>';
+      `).join('') : '<tr><td colspan="7" class="p-4 text-center text-stone-400">No customer orders yet.</td></tr>';
 
       document.getElementById('stock-table').innerHTML = products.map(p => `
         <tr class="border-b">
@@ -157,6 +214,33 @@
           </td>
         </tr>
       `).join('');
+    }
+
+    function openInvoice(idx) {
+      const o = currentOrders[idx];
+      if (!o) return;
+      document.getElementById('inv-number').innerText = o.invoiceNumber;
+      document.getElementById('inv-awb').innerText = `AWB: ${o.awbNumber || '-'}`;
+      document.getElementById('inv-customer').innerText = `Billed To: ${o.customerName}`;
+      document.getElementById('inv-address').innerText = `${o.address || ''} - ${o.pincode || ''}`;
+      document.getElementById('inv-phone').innerText = `Phone: ${o.phone || ''}`;
+      document.getElementById('inv-payment').innerText = `Payment: ${o.paymentMethod} (${o.paymentStatus})`;
+      document.getElementById('inv-items').innerHTML = (o.items || []).map(i => `
+        <tr>
+          <td class="py-1.5">${i.name}</td>
+          <td class="py-1.5 text-center">${i.qty}</td>
+          <td class="py-1.5 text-right">₹${Number(i.price).toLocaleString('en-IN')}</td>
+          <td class="py-1.5 text-right font-bold">₹${(Number(i.price) * Number(i.qty)).toLocaleString('en-IN')}</td>
+        </tr>
+      `).join('');
+      document.getElementById('inv-subtotal').innerText = `₹${Number(o.subtotal || 0).toLocaleString('en-IN')}`;
+      document.getElementById('inv-gst').innerText = `₹${Number(o.gstAmount || 0).toLocaleString('en-IN')}`;
+      document.getElementById('inv-total').innerText = `₹${Number(o.totalAmount || 0).toLocaleString('en-IN')}`;
+      document.getElementById('invoice-modal').classList.remove('hidden');
+    }
+
+    function closeInvoiceModal() {
+      document.getElementById('invoice-modal').classList.add('hidden');
     }
 
     async function updateStock(id) {
@@ -181,4 +265,3 @@
   </script>
 </body>
 </html>
-```[cite: 6]
